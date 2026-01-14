@@ -1,0 +1,31 @@
+# Git
+.git
+.gitattributes
+.gitignore
+
+# Github
+.github
+
+# CircleCI
+.circleci
+
+ # JetBrains IDEs
+.idea
+
+# Vscode
+.vscode
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.override.yml
+docker-compose.yml
+Docker
+
+# Miscellanenous
+.env*
+!.env.example
+.editorconfig
+.phpunit.result.cache
+.vagrant
+vendor

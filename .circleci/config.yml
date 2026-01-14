@@ -1,0 +1,285 @@
+version: 2.1
+
+# List of all environment variables accessible in this config file
+# https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
+
+# Recommendations
+# ---------------
+
+# General Principles:
+#
+#  1. Descriptive: The job name should clearly describe what the job does.
+#  2. Concise: Names should be as short as possible while still being descriptive.
+#  3. Consistent: Use a consistent format or pattern for all job names.
+#  4. Avoid Ambiguous Abbreviations: If you use abbreviations, ensure they are widely understood.
+#
+# Naming Convention Proposal:
+#
+#  1. Prefixes based on the nature of the job:
+#     - build-: for jobs related to building or installation.
+#     - lint-: for jobs related to code quality checking.
+#     - test-: for jobs related to testing.
+#     - security-: for jobs related to security.
+#     - metrics-: for jobs related to metrics generation.
+#     - deploy-: for jobs related to deployment.
+#     - notify-: for jobs related to notifications.
+#     - debug-: for jobs related to debugging.
+#     - setup-: for jobs related to set up.
+#     - init-: for jobs related to initialization.
+#     - generate-: for jobs related to generation.
+#     - validate-: for jobs related to validation.
+#     - compile-: for jobs related to compilation.
+#     - e2e-: for jobs related to end-to-end testing.
+#
+#  2. Suffixes based on the specific tool or task:
+#  For example, for a job that uses PHP_CodeSniffer, use phpcs as a suffix.
+
+
+# Default configuration for persist_to_workspace and attach_workspace commands
+persist_to_workspace: &persist_to_workspace
+  persist_to_workspace:
+    root: .
+    paths:
+      - .
+
+attach_workspace: &attach_workspace
+  attach_workspace:
+    # Must be absolute path or relative path from working_directory
+    at: ~/project
+
+# This main executor is used by all jobs unless otherwise specified
+executors:
+  php-executor:
+    resource_class: small
+    shell: /bin/bash
+    docker:
+      - name: localhost
+        image: cimg/php:8.1
+  builder-executor:
+    resource_class: small
+    shell: /bin/bash
+    docker:
+      - image: cimg/php:8.1-node
+        name: localhost
+  simple-executor:
+    resource_class: small
+    shell: /bin/bash
+    docker:
+      - image: cimg/base:stable
+        name: localhost
+
+
+
+jobs:
+  debug-info:
+    executor: php-executor
+    steps:
+      - run:
+          name: Debug
+          command: |
+            echo "Current user: $USER"
+            echo "Home directory: $HOME"
+            echo "Current shell: $SHELL"
+            echo "Operating system: $(uname -a)"
+            echo "Current path: $PATH"
+            echo "Current working directory: $(pwd)"
+            echo "Current date: $(date)"
+            echo "--------------------"
+            env
+
+  build-setup:
+    executor: php-executor
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            # "composer.lock" can be used if it is committed to the repo
+            - v1-dependencies-{{ checksum "composer.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run:
+          name: Install dependencies
+          command: composer install --no-interaction --no-ansi --prefer-dist
+      - save_cache:
+          paths:
+            - ./vendor
+          key: v1-dependencies-{{ checksum "composer.json" }}
+      - *persist_to_workspace
+
+
+  lint-phpcs:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install PHP_CodeSniffer and PHPCompatibility
+          command: composer require --dev "squizlabs/php_codesniffer=*" "phpcompatibility/php-compatibility=*"
+      - run:
+          name: Run PHP_CodeSniffer with Custom Ruleset in the project root
+          command: |
+            ./vendor/bin/phpcs --standard=phpcs.xml --report-file=phpcs-report.txt --report=checkstyle --extensions=php --ignore=vendor/ .
+            result=$?
+            if [ $result -eq 1 ] || [ $result -eq 2 ]; then
+              exit 0
+            else
+              exit $result
+            fi
+      - store_artifacts:
+          path: phpcs-report.txt
+          destination: phpcs-report
+
+
+
+  security-check-dependencies:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install local-php-security-checker
+          command: |
+            curl -L -o local-php-security-checker https://github.com/fabpot/local-php-security-checker/releases/download/v2.0.6/local-php-security-checker_2.0.6_linux_amd64
+            chmod +x local-php-security-checker
+      - run:
+          name: Run local-php-security-checker
+          command: ./local-php-security-checker --format=json --no-dev > security-report.json
+      - store_artifacts:
+          path: security-report.json
+          destination: security-report
+
+
+
+  test-phpunit:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Check if PHPUnit tests are present, otherwise skip the job
+          command: |
+            if [ ! -f "phpunit.xml" ]; then
+              echo "No PHPUnit tests found, skipping job."
+              echo "export SKIP_PHPUNIT=true" >> $BASH_ENV
+              circleci step halt
+            fi
+      - run:
+          name: Install PHPUnit
+          command: composer require --dev phpunit/phpunit
+      - run:
+          name: Run PHPUnit
+          command: ./vendor/bin/phpunit --testsuite=Unit
+
+
+  build-docker-image:
+    executor: builder-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.23
+          docker_layer_caching: true
+      - run:
+          name: Build and Push Docker Image to GHCR (GitHub Container Registry)
+          command: |
+            if [ ! -z "$SKIP_BUILD" ]; then
+              echo "Skipping build"
+              circleci step halt
+              exit 0
+            fi
+
+            # Sanitize the repository name and branch name
+            REPOSITORY=$(echo "ghcr.io/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" | tr '[:upper:]' '[:lower:]' | tr -d '_')
+            TAG=$(echo $CIRCLE_BRANCH | tr '[:upper:]' '[:lower:]' | tr '/' '-' | tr -cd '[:alnum:]._-' | cut -c 1-128)
+
+            # Login to GHCR
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+
+            # Build the Docker image
+            docker build \
+            -f docker/Dockerfile \
+            -t $REPOSITORY:$TAG \
+            --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+            --build-arg TAG="${TAG}" \
+            --build-arg GIT_COMMIT=$(git rev-parse -q --verify HEAD) \
+            --build-arg GIT_URL=$(echo ${CIRCLE_REPOSITORY_URL} | sed -e 's/^git@/https:\/\//g' -e 's/\.git$//g' -e 's/:/\//g') \
+            --build-arg SQLITE_VERSION=3430200 \
+            --build-arg SQLITE_YEAR=2023 \
+            --build-arg PROJECT_USERNAME=$CIRCLE_PROJECT_USERNAME \
+            .
+
+            # Push the Docker image
+            docker push $REPOSITORY:$TAG
+
+
+  deploy-ssh-staging:
+    executor: simple-executor
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "${STAGING_SSH_FINGERPRINT}"
+      - deploy:
+          name: Deploy to AWS
+          command: |
+            set -x
+            ssh -o StrictHostKeyChecking=no $STAGING_SSH_USER@$STAGING_SSH_HOST \<< EOF
+            PHP_FPM_VERSION=$(php -v | head -n 1 | cut -d ' ' -f 2 | cut -d '.' -f 1-2)
+            cd $STAGING_DEPLOY_DIRECTORY
+            git pull origin $CIRCLE_BRANCH
+            composer install --optimize-autoloader --no-interaction --prefer-dist
+            (flock -w 10 9 || exit 1; sudo -S service php${PHP_FPM_VERSION}-fpm restart ) 9>/tmp/fpm.lock
+            EOF
+
+
+#  deploy-ssh-production:
+# It's up to you :)
+
+
+workflows:
+  main_workflow:
+    jobs:
+      - debug-info
+      - build-setup
+      - lint-phpcs:
+          requires:
+            - build-setup
+      - security-check-dependencies:
+          requires:
+            - build-setup
+      - test-phpunit:
+          requires:
+            - build-setup
+      - hold:
+          type: approval
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release\/.*/
+      - deploy-ssh-production:
+          requires:
+              - hold
+          filters:
+            branches:
+              only:
+                - main
+                - master
+      - deploy-ssh-staging:
+          requires:
+            - hold
+          filters:
+            branches:
+              only:
+                - /^release\/.*/
+
+
+  container_workflow:
+    jobs:
+      - build-docker-image:
+          filters:
+            branches:
+              only:
+                - master
+                - main
+                - develop
+                - /^feature\/.*/
+                - /^release\/.*/
+                - /^hotfix\/.*/
+                - /^bugfix\/.*/

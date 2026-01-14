@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ruleset name="Devops">
+    <description>Custom ruleset that combines PSR12 and PHPCompatibility.</description>
+    <!-- Include PSR12 -->
+    <rule ref="PSR12"/>
+    <!-- Include PHPCompatibility -->
+    <rule ref="PHPCompatibility"/>
+    <!-- Check for cross-version support for PHP 7.4 and higher. -->
+    <config name="testVersion" value="7.4-"/>
+    <config name="installed_paths" value="vendor/phpcompatibility/php-compatibility" />
+</ruleset>

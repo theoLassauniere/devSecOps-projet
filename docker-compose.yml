@@ -1,0 +1,16 @@
+services:
+  php-app:
+    build:
+      context: .
+      dockerfile: Docker/Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date +%Y-%m-%d)}
+        TAG: ${TAG:-local}
+        GIT_COMMIT: ${GIT_COMMIT:-local}
+        GIT_URL: ${GIT_URL:-https://github.com/votre-projet}
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_SECRET: ${APP_SECRET:-change_me}

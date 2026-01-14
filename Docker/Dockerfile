@@ -1,5 +1,5 @@
 FROM php:8.2-apache
-LABEL maintainer="YOUR NAME <YOUR EMAIL>"
+LABEL maintainers="mathis.jullien@etu.univ-cotedazur.fr julie.seyier@etu.univ-cotedazur.fr thibault.ripoche@etu.unice.fr theo.lassauniere@etu.unice.fr"
 
 ARG DEBIAN_FRONTEND=noninteractive
 

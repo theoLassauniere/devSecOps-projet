@@ -168,15 +168,15 @@ jobs:
           command: ./vendor/bin/phpunit --testsuite=Unit
 
   pull-secrets-infisical:
-    executor: php-executor
+    executor: simple-executor
     steps:
       - *attach_workspace
       - run:
           name: Install Infisical CLI
           command: |
-            sudo apt-get update
-            sudo apt-get install -y curl apt-transport-https gnupg
-            curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo bash
+            apt-get update
+            apt-get install -y curl apt-transport-https gnupg
+            curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash
       - run:
           name: Pull secrets from Infisical
           command: |
@@ -192,9 +192,12 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
+          name: Create docker directory
+          command: mkdir -p docker
+      - run:
           name: Export secrets for Docker
           command: |
-            echo "ARG APP_SECRET=$APP_SECRET" >> docker/.env
+            echo "ARG APP_SECRET=$APP_SECRET" > docker/.env
       - run:
           name: Build and Push Docker Image to GHCR (GitHub Container Registry)
           command: |

@@ -192,9 +192,9 @@ jobs:
           version: 20.10.23
           docker_layer_caching: true
       - run:
-        name: Export secrets for Docker
-        command: |
-          echo "ARG APP_SECRET=$APP_SECRET" >> docker/.env
+          name: Export secrets for Docker
+          command: |
+            echo "ARG APP_SECRET=$APP_SECRET" >> docker/.env
       - run:
           name: Build and Push Docker Image to GHCR (GitHub Container Registry)
           command: |

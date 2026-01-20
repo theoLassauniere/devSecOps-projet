@@ -54,12 +54,12 @@ executors:
     shell: /bin/bash
     docker:
       - name: localhost
-        image: cimg/php:8.1
+        image: cimg/php:8.2
   builder-executor:
     resource_class: small
     shell: /bin/bash
     docker:
-      - image: cimg/php:8.1-node
+      - image: cimg/php:8.2-node
         name: localhost
   simple-executor:
     resource_class: small
@@ -167,6 +167,22 @@ jobs:
           name: Run PHPUnit
           command: ./vendor/bin/phpunit --testsuite=Unit
 
+  pull-secrets-infisical:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install Infisical CLI
+          command: |
+            curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash
+            apt-get update && apt-get install -y infisical
+      - run:
+          name: Pull secrets from Infisical
+          command: |
+            infisical run \
+            --projectId $INFISICAL_PROJECT_ID \
+            --env $INFISICAL_ENVIRONMENT \
+            -- echo "Secrets loaded"
 
   build-docker-image:
     executor: builder-executor
@@ -175,6 +191,10 @@ jobs:
       - setup_remote_docker:
           version: 20.10.23
           docker_layer_caching: true
+      - run:
+        name: Export secrets for Docker
+        command: |
+          echo "ARG APP_SECRET=$APP_SECRET" >> docker/.env
       - run:
           name: Build and Push Docker Image to GHCR (GitHub Container Registry)
           command: |
@@ -242,9 +262,15 @@ workflows:
       - security-check-dependencies:
           requires:
             - build-setup
-      - test-phpunit:
+      - pull-secrets-infisical:
           requires:
             - build-setup
+      - test-phpunit:
+          requires:
+            - pull-secrets-infisical
+      - build-docker-image:
+          requires:
+            - test-phpunit
       - hold:
           type: approval
           filters:

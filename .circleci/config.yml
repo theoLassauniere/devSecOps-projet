@@ -279,14 +279,14 @@ workflows:
                 - main
                 - master
                 - /^release\/.*/
-      - deploy-ssh-production:
-          requires:
-              - hold
-          filters:
-            branches:
-              only:
-                - main
-                - master
+      # - deploy-ssh-production:
+      #     requires:
+      #         - hold
+      #     filters:
+      #       branches:
+      #         only:
+      #           - main
+      #           - master
       - deploy-ssh-staging:
           requires:
             - hold

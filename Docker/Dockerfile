@@ -16,6 +16,9 @@ ARG PROJECT_USERNAME="SI5"
 
 ENV VERSION="${TAG}"
 
+ARG APP_SECRET
+ENV APP_SECRET=${APP_SECRET}
+
 # Metadata
 LABEL maintainer="${PROJECT_USERNAME}" \
       org.opencontainers.image.authors="${PROJECT_USERNAME}" \

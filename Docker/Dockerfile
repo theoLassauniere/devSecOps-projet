@@ -94,6 +94,8 @@ RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available
 # Copy existing application directory contents
 COPY . /var/www/html
 
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --working-dir=/var/www/html
+
 RUN rm -Rf /var/www/html/docker
 
 # Ensure the volumes directories exist
@@ -102,6 +104,7 @@ RUN mkdir -p /var/www/html/vendor \
 
 #Change permission to allow app to work properly
 RUN chown -R www-data:www-data /var/www/html
+RUN chown -R www-data:www-data /var/www/html/vendor
 
 # Define the working directory
 WORKDIR /var/www/html

@@ -247,7 +247,7 @@ workflows:
             - build-setup
       - test-phpunit:
           requires:
-            - pull-secrets-infisical
+            - build-setup
       - build-docker-image:
           requires:
             - test-phpunit

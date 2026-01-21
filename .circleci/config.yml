@@ -189,16 +189,9 @@ jobs:
             # Login to GHCR
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
-            echo "=== Current directory ==="
-            pwd
-            echo "=== List of files ==="
-            ls -al
-            echo "=== Recursive list ==="
-            ls -R
-
             # Build the Docker image
             docker build \
-            -f docker/Dockerfile \
+            -f Docker/Dockerfile \
             -t $REPOSITORY:$TAG \
             --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
             --build-arg TAG="${TAG}" \

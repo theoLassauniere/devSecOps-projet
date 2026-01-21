@@ -249,14 +249,14 @@ workflows:
       - build-docker-image:
           requires:
             - test-phpunit
-      - hold:
-          type: approval
-          filters:
-            branches:
-              only:
-                - main
-                - master
-                - /^release\/.*/
+      # - hold:
+      #     type: approval
+      #     filters:
+      #       branches:
+      #         only:
+      #           - main
+      #           - master
+      #           - /^release\/.*/
       # - deploy-ssh-production:
       #     requires:
       #         - hold
@@ -267,7 +267,7 @@ workflows:
       #           - master
       - deploy-ssh-staging:
           requires:
-            - hold
+            - build-docker-image
           filters:
             branches:
               only:

@@ -20,7 +20,8 @@
 Dockerfile
 docker-compose.override.yml
 docker-compose.yml
-Docker
+Docker/*
+!Docker/entrypoint.sh
 
 # Miscellanenous
 .env*

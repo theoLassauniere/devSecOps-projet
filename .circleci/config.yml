@@ -170,7 +170,7 @@ jobs:
   build-docker-image:
     executor: builder-executor
     steps:
-      - *attach_workspace
+      - checkout
       - setup_remote_docker:
           docker_layer_caching: true
       - run:

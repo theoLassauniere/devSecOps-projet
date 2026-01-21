@@ -167,37 +167,12 @@ jobs:
           name: Run PHPUnit
           command: ./vendor/bin/phpunit --testsuite=Unit
 
-  pull-secrets-infisical:
-    executor: simple-executor
-    steps:
-      - *attach_workspace
-      - run:
-          name: Install Infisical CLI
-          command: |
-            apt-get update
-            apt-get install -y curl apt-transport-https gnupg
-            curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash
-      - run:
-          name: Pull secrets from Infisical
-          command: |
-            infisical run \
-            --projectId $INFISICAL_PROJECT_ID \
-            --env $INFISICAL_ENVIRONMENT \
-            -- echo "Secrets loaded"
-
   build-docker-image:
     executor: builder-executor
     steps:
-      - checkout
+      - *attach_workspace
       - setup_remote_docker:
           docker_layer_caching: true
-      - run:
-          name: Create docker directory
-          command: mkdir -p docker
-      - run:
-          name: Export secrets for Docker
-          command: |
-            echo "ARG APP_SECRET=$APP_SECRET" > docker/.env
       - run:
           name: Build and Push Docker Image to GHCR (GitHub Container Registry)
           command: |
@@ -214,6 +189,8 @@ jobs:
             # Login to GHCR
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
+            cd ~/project
+
             # Build the Docker image
             docker build \
             -f docker/Dockerfile \
@@ -225,11 +202,14 @@ jobs:
             --build-arg SQLITE_VERSION=3430200 \
             --build-arg SQLITE_YEAR=2023 \
             --build-arg PROJECT_USERNAME=$CIRCLE_PROJECT_USERNAME \
+            --build-arg APP_SECRET="$APP_SECRET" \
+            --build-arg INFISICAL_TOKEN="$INFISICAL_TOKEN" \
+            --build-arg INFISICAL_PROJECT_ID="$INFISICAL_PROJECT_ID" \
+            --build-arg INFISICAL_ENVIRONMENT="$INFISICAL_ENVIRONMENT" \
             .
 
             # Push the Docker image
             docker push $REPOSITORY:$TAG
-
 
   deploy-ssh-staging:
     executor: simple-executor
@@ -263,9 +243,6 @@ workflows:
           requires:
             - build-setup
       - security-check-dependencies:
-          requires:
-            - build-setup
-      - pull-secrets-infisical:
           requires:
             - build-setup
       - test-phpunit:

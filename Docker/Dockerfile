@@ -109,7 +109,6 @@ WORKDIR /var/www/html
 # Exposez le port 80
 EXPOSE 80
 
-COPY Docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

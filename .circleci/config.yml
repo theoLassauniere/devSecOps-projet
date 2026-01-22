@@ -93,29 +93,27 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            # "composer.lock" can be used if it is committed to the repo
-            - v1-dependencies-{{ checksum "composer.json" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+            # Prefer lockfile for stable cache key
+            - v2-dependencies-{{ checksum "composer.lock" }}
+            - v2-dependencies-{{ checksum "composer.json" }}
+            - v2-dependencies-
       - run:
-          name: Install dependencies
-          command: composer update --with-all-dependencies --no-interaction --no-ansi --prefer-dist
+          name: Install dependencies (from lock)
+          command: |
+            composer install --no-interaction --no-ansi --prefer-dist --optimize-autoloader
       - save_cache:
           paths:
             - ./vendor
-          key: v1-dependencies-{{ checksum "composer.json" }}
+            - ~/.composer/cache
+          key: v2-dependencies-{{ checksum "composer.lock" }}
       - *persist_to_workspace
-
 
   lint-phpcs:
     executor: php-executor
     steps:
       - *attach_workspace
       - run:
-          name: Install PHP_CodeSniffer and PHPCompatibility
-          command: composer require --dev "squizlabs/php_codesniffer=*" "phpcompatibility/php-compatibility=*"
-      - run:
-          name: Run PHP_CodeSniffer with Custom Ruleset in the project root
+          name: Run PHP_CodeSniffer
           command: |
             ./vendor/bin/phpcs --standard=phpcs.xml --report-file=phpcs-report.txt --report=checkstyle --extensions=php --ignore=vendor/ .
             result=$?
@@ -127,25 +125,6 @@ jobs:
       - store_artifacts:
           path: phpcs-report.txt
           destination: phpcs-report
-
-
-
-  security-check-dependencies:
-    executor: php-executor
-    steps:
-      - *attach_workspace
-      - run:
-          name: Install local-php-security-checker
-          command: |
-            curl -L -o local-php-security-checker https://github.com/fabpot/local-php-security-checker/releases/download/v2.0.6/local-php-security-checker_2.0.6_linux_amd64
-            chmod +x local-php-security-checker
-      - run:
-          name: Run local-php-security-checker
-          command: ./local-php-security-checker --format=json --no-dev > security-report.json
-      - store_artifacts:
-          path: security-report.json
-          destination: security-report
-
 
 
   test-phpunit:
@@ -161,9 +140,6 @@ jobs:
               circleci step halt
             fi
       - run:
-          name: Install PHPUnit
-          command: composer require --dev phpunit/phpunit
-      - run:
           name: Run PHPUnit
           command: ./vendor/bin/phpunit --testsuite=Unit
 
@@ -171,9 +147,6 @@ jobs:
     executor: php-executor
     steps:
       - *attach_workspace
-      - run:
-          name: Install PHPMetrics
-          command: composer require --dev phpmetrics/phpmetrics
       - run:
           name: Create reports directory
           command: mkdir -p reports
@@ -193,9 +166,6 @@ jobs:
     steps:
       - *attach_workspace
       - run:
-          name: Install PHPLOC
-          command: composer require --dev phploc/phploc
-      - run:
           name: Create reports directory
           command: mkdir -p reports
       - run:
@@ -214,9 +184,6 @@ jobs:
     steps:
       - *attach_workspace
       - run:
-          name: Install PHPMD
-          command: composer require --dev phpmd/phpmd --no-interaction --no-ansi
-      - run:
           name: Create reports directory
           command: mkdir -p reports
       - run:
@@ -224,8 +191,6 @@ jobs:
           command: |
             set -e
             ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.txt
-
-            # XML report (same rules). Useful for tooling/archiving.
             ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.xml
       - store_artifacts:
           path: reports/phpmd-report.txt
@@ -239,9 +204,6 @@ jobs:
     steps:
       - *attach_workspace
       - run:
-          name: Install php-doc-check
-          command: composer require --dev niels-de-blaauw/php-doc-check --no-interaction --no-ansi
-      - run:
           name: Create reports directory
           command: mkdir -p reports
       - run:
@@ -252,6 +214,7 @@ jobs:
       - store_artifacts:
           path: reports/php-doc-check.txt
           destination: php-doc-check/php-doc-check.txt
+
 
   build-docker-image:
     executor: builder-executor

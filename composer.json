@@ -10,8 +10,8 @@
   "require-dev": {
     "roave/security-advisories": "dev-latest",
     "phpunit/phpunit": "^10.3.2",
-    "phpmetrics/phpmetrics": "^2.9.5",
-    "phploc/phploc": "^8.1.0"
+    "phpmetrics/phpmetrics": "^2.9.1",
+    "phploc/phploc": "^7.0.2"
   },
   "autoload": {
     "psr-4": {

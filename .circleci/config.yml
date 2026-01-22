@@ -115,13 +115,19 @@ jobs:
       - run:
           name: Run PHP_CodeSniffer
           command: |
-            ./vendor/bin/phpcs --standard=phpcs.xml --report-file=phpcs-report.txt --report=checkstyle --extensions=php --ignore=vendor/ .
-            result=$?
-            if [ $result -eq 1 ] || [ $result -eq 2 ]; then
+            set +e
+            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode \
+              --exclude vendor,tests | tee reports/phpmd-report.txt
+            result=${PIPESTATUS[0]}
+
+            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode \
+              --exclude vendor,tests > reports/phpmd-report.xml
+
+            # PHPMD returns 2 when violations are found - we want to treat this as a success because its an exercise in real life we shoudn't do that 
+            if [ "$result" -eq 2 ]; then
               exit 0
-            else
-              exit $result
             fi
+            exit "$result"
       - store_artifacts:
           path: phpcs-report.txt
           destination: phpcs-report

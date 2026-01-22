@@ -126,6 +126,21 @@ jobs:
           path: phpcs-report.txt
           destination: phpcs-report
 
+  security-check-dependencies:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install local-php-security-checker
+          command: |
+            curl -L -o local-php-security-checker https://github.com/fabpot/local-php-security-checker/releases/download/v2.0.6/local-php-security-checker_2.0.6_linux_amd64
+            chmod +x local-php-security-checker
+      - run:
+          name: Run local-php-security-checker
+          command: ./local-php-security-checker --format=json --no-dev > security-report.json
+      - store_artifacts:
+          path: security-report.json
+          destination: security-report
 
   test-phpunit:
     executor: php-executor

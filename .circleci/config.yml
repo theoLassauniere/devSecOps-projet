@@ -167,6 +167,48 @@ jobs:
           name: Run PHPUnit
           command: ./vendor/bin/phpunit --testsuite=Unit
 
+  metrics-phpmetrics:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install PHPMetrics
+          command: composer require --dev phpmetrics/phpmetrics
+      - run:
+          name: Create reports directory
+          command: mkdir -p reports
+      - run:
+          name: Run PHPMetrics
+          command: |
+            ./vendor/bin/phpmetrics --report-html=reports/phpmetrics --report-json=reports/phpmetrics.json --excluded-dirs=vendor,tests .
+      - store_artifacts:
+          path: reports/phpmetrics
+          destination: phpmetrics-report
+      - store_artifacts:
+          path: reports/phpmetrics.json
+          destination: phpmetrics-json
+
+  metrics-phploc:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install PHPLOC
+          command: composer require --dev phploc/phploc
+      - run:
+          name: Create reports directory
+          command: mkdir -p reports
+      - run:
+          name: Run PHPLOC
+          command: |
+            ./vendor/bin/phploc --log-json=reports/phploc.json --exclude=vendor --exclude=tests . > reports/phploc.txt
+      - store_artifacts:
+          path: reports/phploc.txt
+          destination: phploc-report
+      - store_artifacts:
+          path: reports/phploc.json
+          destination: phploc-json
+
   build-docker-image:
     executor: builder-executor
     steps:
@@ -244,6 +286,12 @@ workflows:
           requires:
             - build-setup
       - test-phpunit:
+          requires:
+            - build-setup
+      - metrics-phpmetrics:
+          requires:
+            - build-setup
+      - metrics-phploc:
           requires:
             - build-setup
       - build-docker-image:

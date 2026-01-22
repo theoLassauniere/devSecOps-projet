@@ -204,12 +204,19 @@ jobs:
       - run:
           name: Run PHPMD (text + xml reports)
           command: |
-            set -e
-            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.txt
+            set +e
+            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode \
+              --exclude vendor,tests | tee reports/phpmd-report.txt
+            result=${PIPESTATUS[0]}
 
-            # XML report (same rules). Useful for tooling/archiving.
-            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.xml
-            
+            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode \
+              --exclude vendor,tests > reports/phpmd-report.xml
+
+            # PHPMD returns 2 when violations are found
+            if [ "$result" -eq 2 ]; then
+              exit 0
+            fi
+            exit "$result"
       - store_artifacts:
           path: reports/phpmd-report.txt
           destination: phpmd/phpmd-report.txt

@@ -205,8 +205,12 @@ jobs:
           name: Run PHPMD (text + xml reports)
           command: |
             set -e
-            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.txt
-            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.xml
+            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode \
+              --exclude vendor,tests | tee reports/phpmd-report.txt
+
+            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode \
+              --exclude vendor,tests > reports/phpmd-report.xml
+            
       - store_artifacts:
           path: reports/phpmd-report.txt
           destination: phpmd/phpmd-report.txt

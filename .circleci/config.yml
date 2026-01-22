@@ -209,6 +209,50 @@ jobs:
           path: reports/phploc.json
           destination: phploc-json
 
+  lint-phpmd:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install PHPMD
+          command: composer require --dev phpmd/phpmd --no-interaction --no-ansi
+      - run:
+          name: Create reports directory
+          command: mkdir -p reports
+      - run:
+          name: Run PHPMD (text + xml reports)
+          command: |
+            set -e
+            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.txt
+
+            # XML report (same rules). Useful for tooling/archiving.
+            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.xml
+      - store_artifacts:
+          path: reports/phpmd-report.txt
+          destination: phpmd/phpmd-report.txt
+      - store_artifacts:
+          path: reports/phpmd-report.xml
+          destination: phpmd/phpmd-report.xml
+
+  lint-php-doc-check:
+    executor: php-executor
+    steps:
+      - *attach_workspace
+      - run:
+          name: Install php-doc-check
+          command: composer require --dev niels-de-blaauw/php-doc-check --no-interaction --no-ansi
+      - run:
+          name: Create reports directory
+          command: mkdir -p reports
+      - run:
+          name: Run php-doc-check (save output)
+          command: |
+            set -e
+            ./vendor/bin/php-doc-check src | tee reports/php-doc-check.txt
+      - store_artifacts:
+          path: reports/php-doc-check.txt
+          destination: php-doc-check/php-doc-check.txt
+
   build-docker-image:
     executor: builder-executor
     steps:
@@ -280,6 +324,12 @@ workflows:
       - debug-info
       - build-setup
       - lint-phpcs:
+          requires:
+            - build-setup
+      - lint-phpmd:
+          requires:
+            - build-setup
+      - lint-php-doc-check:
           requires:
             - build-setup
       - security-check-dependencies:

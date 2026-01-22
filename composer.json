@@ -11,7 +11,9 @@
     "roave/security-advisories": "dev-latest",
     "phpunit/phpunit": "^9.6",
     "phpmetrics/phpmetrics": "^2.9.1",
-    "phploc/phploc": "^7.0.2"
+    "phploc/phploc": "^7.0.2",
+    "phpmd/phpmd": "^2.15",
+    "niels-de-blaauw/php-doc-check": "^0.4.1"
   },
   "autoload": {
     "psr-4": {

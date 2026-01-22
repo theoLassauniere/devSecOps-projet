@@ -11,6 +11,8 @@ header("Content-type: image/png");
 
 
 /* Edit this to your preferences */
+$appSecret = getenv('APP_SECRET') ?: null;
+
 $yourColor = [128, 128, 128];
 $yourColor2 = [60, 80, 57];
 $yourText = "DEVOPS";
@@ -18,5 +20,5 @@ $yourText2 = "Une superbe image";
 
 
 /* Don't edit below this line */
-$image = new ImageCreator($yourColor, $yourColor2, $yourText, $yourText2);
+$image = new ImageCreator($yourColor, $yourColor2, $yourText, $yourText2,$appSecret);
 $image->createImage();

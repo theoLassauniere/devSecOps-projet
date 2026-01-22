@@ -14,7 +14,7 @@ use function imagettftext;
 
 class ImageCreator
 {
-    protected $im;
+    protected $image;
     protected int $white;
     protected int $yourColor;
     protected int $yourColor2;
@@ -27,7 +27,8 @@ class ImageCreator
         array  $yourColor = [128, 128, 128],
         array  $yourColor2 = [60, 80, 57],
         string $text = "DEVOPS",
-        string $text2 = "Une superbe image"
+        string $text2 = "Une superbe image",
+        ?string $appSecret = null
     ) {
         // Création d'une image de 400x200 pixels
         $this->im = imagecreatetruecolor(600, 200);
@@ -39,8 +40,10 @@ class ImageCreator
         $this->text = $text . ' - ' . (new Carbon())->format('Y-m-d H:i:s');
         $this->text2 = $text2;
 
-        if (!empty($_ENV['APP_SECRET'])) {
-            $this->text2 .= ' (secret: ' . $_ENV['APP_SECRET'] . ')';
+        if ($appSecret !== null && $appSecret !== '') {
+            $this->text2 = $text2 . " (" . $appSecret . ")";
+        } else {
+            $this->text2 = $text2;
         }
 
         // La police

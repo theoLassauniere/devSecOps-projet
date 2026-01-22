@@ -99,7 +99,7 @@ jobs:
             - v1-dependencies-
       - run:
           name: Install dependencies
-          command: composer install --no-interaction --no-ansi --prefer-dist
+          command: composer update --no-interaction --no-ansi --prefer-dist
       - save_cache:
           paths:
             - ./vendor

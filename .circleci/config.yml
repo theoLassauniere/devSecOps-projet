@@ -115,7 +115,13 @@ jobs:
       - run:
           name: Run PHP_CodeSniffer
           command: |
-
+            ./vendor/bin/phpcs --standard=phpcs.xml --report-file=phpcs-report.txt --report=checkstyle --extensions=php --ignore=vendor/ .
+            result=$?
+            if [ $result -eq 1 ] || [ $result -eq 2 ]; then
+              exit 0
+            else
+              exit $result
+            fi
       - store_artifacts:
           path: phpcs-report.txt
           destination: phpcs-report
@@ -198,17 +204,11 @@ jobs:
       - run:
           name: Run PHPMD (text + xml reports)
           command: |
-            set +e
-            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode \
-              --exclude vendor,tests | tee reports/phpmd-report.txt
-            result=${PIPESTATUS[0]}
-            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode \
-              --exclude vendor,tests > reports/phpmd-report.xml
-            # PHPMD returns 2 when violations are found → don't fail the job ( this shounldn't be done in other contexts  than this exercise)
-            if [ "$result" -eq 2 ]; then
-              exit 0
-            fi
-            exit "$result"
+            set -e
+            ./vendor/bin/phpmd src text cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.txt
+
+            # XML report (same rules). Useful for tooling/archiving.
+            ./vendor/bin/phpmd src xml cleancode,codesize,controversial,design,naming,unusedcode --exclude vendor,tests > reports/phpmd-report.xml
             
       - store_artifacts:
           path: reports/phpmd-report.txt

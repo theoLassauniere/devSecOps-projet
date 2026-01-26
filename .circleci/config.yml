@@ -314,7 +314,7 @@ jobs:
                 -e INFISICAL_PROJECT_ID="$INFISICAL_PROJECT_ID" \
                 -e INFISICAL_ENVIRONMENT="$INFISICAL_ENVIRONMENT" \
                 --restart unless-stopped \
-                $STAGING_DOCKER_IMAGE
+                $STAGING_DOCKER_IMAGE:$STAGING_DOCKER_TAG
             EOF
 
 workflows:

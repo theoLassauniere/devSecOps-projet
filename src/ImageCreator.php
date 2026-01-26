@@ -42,10 +42,8 @@ class ImageCreator
 
         if ($appSecret !== null && $appSecret !== '') {
             $this->text2 = $text2 . " (" . $appSecret . ")";
-        } else {
-            $this->text2 = $text2;
         }
-
+        
         // La police
         $this->font = dirname(__DIR__) . '/public/font/consolas.ttf';
     }

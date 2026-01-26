@@ -12,5 +12,3 @@ services:
       - "8080:80"
     volumes:
       - .:/var/www/html
-    environment:
-      APP_SECRET: ${APP_SECRET:-change_me}

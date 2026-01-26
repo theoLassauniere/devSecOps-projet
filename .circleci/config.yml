@@ -294,10 +294,25 @@ jobs:
             (flock -w 10 9 || exit 1; sudo -S service php${PHP_FPM_VERSION}-fpm restart ) 9>/tmp/fpm.lock
             EOF
 
-
-#  deploy-ssh-production:
-# It's up to you :)
-
+  deploy-ssh-production:
+    executor: simple-executor
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "${STAGING_SSH_FINGERPRINT}"
+      - deploy:
+          name: Deploy to AWS via SSH
+          command: |
+            ssh -o StrictHostKeyChecking=no $STAGING_SSH_USER@$STAGING_SSH_HOST \<< EOF
+              docker stop DevSecOpsStaging || true
+              docker rm DevSecOpsStaging || true
+              docker pull $STAGING_DOCKER_IMAGE
+              docker run -d \
+                --name DevSecOpsStaging \
+                -p 80:80 \
+                --restart unless-stopped \
+                $STAGING_DOCKER_IMAGE
+            EOF
 
 workflows:
   main_workflow:
@@ -338,30 +353,13 @@ workflows:
       #           - /^release\/.*/
 
       - deploy-ssh-production:
-          requires:
-            - build-docker-image
-          filters:
-            branches:
-              only:
-                - main
-                - master
-          steps:
-            - add_ssh_keys:
-                fingerprints:
-                  - "${STAGING_SSH_FINGERPRINT}"
-            - run:
-                name: Deploy via SSH
-                command: |
-                  ssh -o StrictHostKeyChecking=no $STAGING_SSH_USER@$STAGING_SSH_HOST \<< EOF
-                    docker stop DevSecOpsStaging || true
-                    docker rm DevSecOpsStaging || true
-                    docker pull $STAGING_DOCKER_IMAGE
-                    docker run -d \
-                      --name DevSecOpsStaging \
-                      -p 80:80 \
-                      --restart unless-stopped \
-                      $STAGING_DOCKER_IMAGE
-                  EOF
+            requires:
+                - hold
+            filters:
+              branches:
+                only:
+                  - main
+                  - master
 
       - deploy-ssh-staging:
           requires:

@@ -336,14 +336,33 @@ workflows:
       #           - main
       #           - master
       #           - /^release\/.*/
-      # - deploy-ssh-production:
-      #     requires:
-      #         - hold
-      #     filters:
-      #       branches:
-      #         only:
-      #           - main
-      #           - master
+
+      - deploy-ssh-production:
+          requires:
+            - build-docker-image
+          filters:
+            branches:
+              only:
+                - main
+                - master
+          steps:
+            - add_ssh_keys:
+                fingerprints:
+                  - "${STAGING_SSH_FINGERPRINT}"
+            - run:
+                name: Deploy via SSH
+                command: |
+                  ssh -o StrictHostKeyChecking=no $STAGING_SSH_USER@$STAGING_SSH_HOST << 'EOF'
+                    docker stop DevSecOpsStaging || true
+                    docker rm DevSecOpsStaging || true
+                    docker pull $STAGING_DOCKER_IMAGE
+                    docker run -d \
+                      --name DevSecOpsStaging \
+                      -p 80:80 \
+                      --restart unless-stopped \
+                      $STAGING_DOCKER_IMAGE
+                  EOF
+
       - deploy-ssh-staging:
           requires:
             - build-docker-image

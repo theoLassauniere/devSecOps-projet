@@ -114,6 +114,10 @@ RUN mkdir -p /var/www/html/vendor \
 RUN chown -R www-data:www-data /var/www/html
 RUN chown -R www-data:www-data /var/www/html/vendor
 
+# Afficher toutes les erreurs PHP pour le debug
+RUN echo "display_errors=On" > /usr/local/etc/php/conf.d/docker-php-errors.ini \
+ && echo "error_reporting=E_ALL" >> /usr/local/etc/php/conf.d/docker-php-errors.ini
+
 # Define the working directory
 WORKDIR /var/www/html
 

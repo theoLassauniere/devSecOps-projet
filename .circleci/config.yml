@@ -310,6 +310,9 @@ jobs:
               docker run -d \
                 --name DevSecOpsStaging \
                 -p 80:80 \
+                -e INFISICAL_TOKEN="$INFISICAL_TOKEN" \
+                -e INFISICAL_PROJECT_ID="$INFISICAL_PROJECT_ID" \
+                -e INFISICAL_ENVIRONMENT="$INFISICAL_ENVIRONMENT" \
                 --restart unless-stopped \
                 $STAGING_DOCKER_IMAGE
             EOF

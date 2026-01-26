@@ -354,7 +354,7 @@ workflows:
 
       - deploy-ssh-production:
             requires:
-                - hold
+                - build-docker-image
             filters:
               branches:
                 only:

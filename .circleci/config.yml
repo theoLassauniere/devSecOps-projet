@@ -276,6 +276,47 @@ jobs:
             # Push the Docker image
             docker push $REPOSITORY:$TAG
 
+  scan-ghcr-image:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.18
+
+      # Authentification à GHCR
+      - run:
+          name: Login to GHCR
+          command: |
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+
+      # Pull de l'image depuis GHCR
+      - run:
+          name: Pull image from GHCR
+          command: |
+            docker pull $STAGING_DOCKER_IMAGE:$STAGING_DOCKER_TAG
+
+      # Installation de Trivy
+      - run:
+          name: Install Trivy
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install -y trivy
+
+      # Scan de l'image avec Trivy
+      - run:
+          name: Scan image with Trivy
+          command: |
+            trivy image --severity HIGH,CRITICAL --exit-code 1 $STAGING_DOCKER_IMAGE:$STAGING_DOCKER_TAG
+
+      # Génération du rapport
+      - run:
+          nam
+
   deploy-ssh-staging:
     executor: simple-executor
     steps:
@@ -346,6 +387,9 @@ workflows:
       - build-docker-image:
           requires:
             - test-phpunit
+      - scan-ghcr-image:
+          requires:
+            - build-docker-image
       # - hold:
       #     type: approval
       #     filters:
@@ -354,10 +398,9 @@ workflows:
       #           - main
       #           - master
       #           - /^release\/.*/
-
       - deploy-ssh-production:
             requires:
-                - build-docker-image
+                - scan-ghcr-image
             filters:
               branches:
                 only:

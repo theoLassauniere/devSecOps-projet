@@ -1,0 +1,25 @@
+version: 2
+
+updates:
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+    # PR
+    open-pull-requests-limit: 5
+
+    # Labels
+    labels:
+      - "dependencies"
+      - "security"
+
+    commit-message:
+      prefix: "security"
+      include: "scope"
+
+    # Ignorer les major versions pour éviter les break changes
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"

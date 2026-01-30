@@ -313,10 +313,6 @@ jobs:
           command: |
             trivy image --severity HIGH,CRITICAL --exit-code 1 $STAGING_DOCKER_IMAGE:$STAGING_DOCKER_TAG || true
 
-      # Génération du rapport
-      - run:
-          nam
-
   deploy-ssh-staging:
     executor: simple-executor
     steps:

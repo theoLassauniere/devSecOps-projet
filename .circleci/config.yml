@@ -309,9 +309,9 @@ jobs:
 
       # Scan de l'image avec Trivy (non bloquant pour le moment)
       - run:
-        name: Scan image with Trivy (non-blocking - temporary)
-        command: |
-          trivy image --severity HIGH,CRITICAL --exit-code 1 $STAGING_DOCKER_IMAGE:$STAGING_DOCKER_TAG || true
+          name: Scan image with Trivy (non-blocking - temporary)
+          command: |
+            trivy image --severity HIGH,CRITICAL --exit-code 1 $STAGING_DOCKER_IMAGE:$STAGING_DOCKER_TAG || true
 
       # Génération du rapport
       - run:
